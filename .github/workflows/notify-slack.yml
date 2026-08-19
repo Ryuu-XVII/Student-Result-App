@@ -1,0 +1,34 @@
+name: Notify Slack on Push/PR
+
+# Posts a Slack message whenever someone pushes a commit or opens/updates
+# a pull request. Build/deploy status is posted separately from
+# ci-cd.yml, since that's where the actual build happens.
+
+on:
+  push:
+    branches:
+      - main
+      - testing-environment
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify push
+        if: github.event_name == 'push'
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":":arrow_up: *Push* to `${{ github.ref_name }}` by ${{ github.actor }}\n<${{ github.event.head_commit.url }}|${{ github.event.head_commit.message }}>"}' \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
+
+      - name: Notify pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":":twisted_rightwards_arrows: *Pull request* #${{ github.event.pull_request.number }} by ${{ github.actor }}\n<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>"}' \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
